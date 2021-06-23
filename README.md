@@ -28,12 +28,12 @@ Simply assign it to the url variable as a string, just like the default
 This project is owned by: \
 Bazham Khanatayev \
 David Muenz \
-Eyal Ran   \
+Eyal Ran   
 
 # GitHub Link
 
 This project is in a public repository: \
-https://github.com/KhanatayevB/DataMiningProject
+https://github.com/KhanatayevB/BasketBall_Scraper
 
 
 # Project Status
