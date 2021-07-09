@@ -12,6 +12,43 @@ from bs4 import BeautifulSoup
 import pandas as pd
 # import os
 # import argparse
+import pymysql
+
+cnx = pymysql.connect(
+        user= "new",
+        password= "Ahoibrause#97",
+        db= "aalwines",
+    )
+cursor = cnx.cursor()
+def create_db(urls_list, tr):
+
+    cursor.execute(
+        "CREATE TABLE IF NOT EXISTS players (id INT AUTO_INCREMENT PRIMARY KEY, player VARCHAR(100),  start_year INT,"
+        "end_year INT, position INT, height float, weight INT, birth_date DATE, colleges VARCHAR(100))")
+    print('Starts scraping all players data...')
+    for url in urls_list:
+        letter_page_soup = get_letter_page_soup_obj(url)
+        for tr in letter_page_soup.find_all('tr'):
+            if tr.find('a'):
+                letter_page_soup = get_letter_page_soup_obj(url)
+                players_dict = scrape_letter_players_data(letter_page_soup, players_dict, url)
+                players_dict = {'player': [], 'start_year': [], 'end_year': [], 'position': [],
+                                'height': [], 'weight': [], 'birth_date': [], 'colleges': []}
+
+                player = tr.a.text
+                start_year = tr.find('td', {'data-stat': 'year_min'}).text
+                end_year = tr.find('td', {'data-stat': 'year_max'}).text
+                position = tr.find('td', {'data-stat': 'pos'}).text
+                height = tr.find('td', {'data-stat': 'height'}).text
+                weight = tr.find('td', {'data-stat': 'weight'}).text
+                birth_date = tr.find('td', {'data-stat': 'birth_date'}).text
+                colleges = tr.find('td', {'data-stat': 'colleges'}).text
+                player_url = tr.find('a').get('href')
+
+
+        add_node_list = ("INSERT INTO node_list ( player, start_year, end_year, position , height, weight, birth_date, colleges)"
+                     "VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"
+                     )
 
 
 def create_urls_list():
@@ -53,8 +90,16 @@ def create_players_dict():
                     'height': [], 'weight': [], 'birth_date': [], 'colleges': []}
     return players_dict
 
+def create_players_dict():
+    """
+    This function creates a proto-type of the dictionary to which the scraped players data
+    will be written.
+    :return: dict.
+    """
+    players_career_sum_dict = {'player': [], 'G': [], 'PTS': [], 'TRB': [], 'AST': []}
+    return players_career_sum_dict
 
-def scrap_payer_data(tr, players_dict):
+def scrap_payer_data(tr, players_dict ,url):
     """
     This function receives a single row of a player  data, scraped from the players data tables,
     and extract the player's data from it, into the players_dict.
@@ -71,10 +116,13 @@ def scrap_payer_data(tr, players_dict):
     players_dict['weight'].append(tr.find('td', {'data-stat': 'weight'}).text)
     players_dict['birth_date'].append(tr.find('td', {'data-stat': 'birth_date'}).text)
     players_dict['colleges'].append(tr.find('td', {'data-stat': 'colleges'}).text)
+    player_url = tr.find('a').get('href')
+    page_pl = requests.get(url + player_url)
+    letter_page_soup_pl = BeautifulSoup(page_pl.content, 'html.parser')
     return players_dict
 
 
-def scrape_letter_players_data(letter_page_soup_obj, players_dict):
+def scrape_letter_players_data(letter_page_soup_obj, players_dict, url):
     """
     This function receives a BeautifulSoup object containing the data table of all players
     with last name starts with same letter, and for each row of tge data table, calls to
@@ -86,7 +134,7 @@ def scrape_letter_players_data(letter_page_soup_obj, players_dict):
     """
     for tr in letter_page_soup_obj.find_all('tr'):
         if tr.find('a'):
-            players_dict = scrap_payer_data(tr, players_dict)
+            players_dict = scrap_payer_data(tr, players_dict, url)
     return players_dict
 
 
@@ -101,7 +149,7 @@ def get_all_players_data(urls_list, players_dict):
     print('Starts scraping all players data...')
     for url in urls_list:
         letter_page_soup = get_letter_page_soup_obj(url)
-        players_dict = scrape_letter_players_data(letter_page_soup, players_dict)
+        players_dict = scrape_letter_players_data(letter_page_soup, players_dict,url)
     return players_dict
 
 
