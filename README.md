@@ -67,7 +67,10 @@ not be available after the end of the scraper run.
 
 All files created by the scraper, as well as the data-based created by the scraper, are sved to the directory
 that contains the players_data_scraper.py file. This could be changed by an assignment of the requested path
-to the USER_PATH variable found on the constants.py file.
+to the USER_PATH variable found on the constants.py file. \
+
+When trying to right scraped data to the data-base, the user should provide the user's sql's user name and password
+by an assignment to the SQL_USER_NAME AND SQL_USER_PASSWORD variables found on the constants.py file. \
 
 
 # Contributors
