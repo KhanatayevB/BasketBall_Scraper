@@ -18,8 +18,8 @@ def create_db(players_data_frame):
 
     players_data_frame.loc[players_data_frame.weight == '',:] = 0
     play_data_list = players_data_frame.values.tolist()
-    username = 'root'
-    password = 'GebrauchsMuster4$'
+    username = constants.SQL_USER_NAME
+    password = constants.SQL_USER_PASSWORD
     con = pymysql.connect(user=username, password=password)
     cur = con.cursor()
     cur.execute("CREATE DATABASE bask_play;")
