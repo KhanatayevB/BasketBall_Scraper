@@ -43,13 +43,12 @@ def connect_to_db():
 
     username = constants.SQL_USER_NAME
     password = constants.SQL_USER_PASSWORD
-    con_without_db = pymysql.connect(user=username, password=password)
-    cur_without_db = con_without_db.cursor()
-    cur_without_db.execute("CREATE DATABASE IF NOT EXISTS bask_play;")
-    con_with_db = pymysql.connect(user=username, password=password, database='bask_play')
-    cur_with_db = con_without_db.cursor()
+    con = pymysql.connect(user=username, password=password)
+    cur = con.cursor()
+    cur.execute("CREATE DATABASE IF NOT EXISTS bask_play;")
+    cur.execute("use bask_play;")
 
-    return con_with_db, cur_with_db
+    return con, cur
 
 
 def insert_position_in_db(new_positions):
@@ -404,9 +403,6 @@ def get_colleges():
     return list(colleges)
 
 
-con, cur = connect_to_db()
-
-
 def main():
     """
     This is main(). The main function calls all necessary functions needed for scraping all of the
@@ -462,6 +458,6 @@ def main():
         get_team_tables_from_api()
         print(constants.WRITTEN_TO_DATA_BASE_MSG)
 
-
+con, cur = connect_to_db()
 if __name__ == '__main__':
     main()
