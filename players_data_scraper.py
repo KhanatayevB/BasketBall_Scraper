@@ -135,7 +135,7 @@ def insert_player_in_db(players_data_frame):
     play_data_list = players_data_frame.drop(['position', 'colleges'], axis=1).values.tolist()
     cur.execute(
         "CREATE TABLE IF NOT EXISTS players (id int AUTO_INCREMENT PRIMARY KEY, player VARCHAR(100), start_year INT"
-        ",end_year INT, position VARCHAR(100), height VARCHAR(100), weight INT, birth_date VARCHAR(100))")
+        ",end_year INT, height VARCHAR(100), weight INT, birth_date VARCHAR(100))")
     cur.execute(
         " ALTER TABLE PLAYERS ADD UNIQUE INDEX ( player,start_year,end_year,height,weight,birth_date);")
     sql = (f"INSERT IGNORE INTO players ( player,start_year,end_year,height,weight,birth_date)"
