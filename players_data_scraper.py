@@ -25,7 +25,7 @@ logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter(
     '%(asctime)s-%(levelname)s-FILE:%(filename)s-FUNC:%(funcName)s-LINE:%(lineno)d-%(message)s')
 
-file_handler = logging.FileHandler('movies.log')
+file_handler = logging.FileHandler('basketball_scraper.log')
 file_handler.setLevel(logging.DEBUG)  # This level is used to make sure the logger captures everything to the file
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
@@ -633,6 +633,7 @@ def main():
     players data from the https://www.basketball-reference.com/ website.
     :return: None.
     """
+    con, cur = connect_to_db()
     args = operate_commandline_argument_parser()
     urls_list = create_urls_list()
     players_dict = create_players_dict()
