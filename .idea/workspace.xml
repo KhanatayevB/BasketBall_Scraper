@@ -1,14 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="e5bd35c6-776b-49cf-af39-5c617ebc34f0" name="Default Changelist" comment="API scraper to integrate to the DB.">
-      <change beforePath="$PROJECT_DIR$/.idea/BasketBall_Scraper.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/BasketBall_Scraper.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="e5bd35c6-776b-49cf-af39-5c617ebc34f0" name="Default Changelist" comment="updated main function.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api_intgreation.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/constants.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/players_data_scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/players_data_scraper.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -107,7 +102,14 @@
       <option name="project" value="LOCAL" />
       <updated>1627471067037</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="updated main function.">
+      <created>1627565759542</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1627565759542</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -136,6 +138,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="API scraper to integrate to the DB." />
-    <option name="LAST_COMMIT_MESSAGE" value="API scraper to integrate to the DB." />
+    <MESSAGE value="updated main function." />
+    <option name="LAST_COMMIT_MESSAGE" value="updated main function." />
   </component>
 </project>
