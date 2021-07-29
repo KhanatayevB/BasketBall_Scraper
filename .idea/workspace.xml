@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="e5bd35c6-776b-49cf-af39-5c617ebc34f0" name="Default Changelist" comment="updated main function.">
+    <list default="true" id="e5bd35c6-776b-49cf-af39-5c617ebc34f0" name="Default Changelist" comment="API scraper to integrate to the DB.">
+      <change beforePath="$PROJECT_DIR$/.idea/BasketBall_Scraper.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/BasketBall_Scraper.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/constants.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db_bask_play_erd.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/players_data_scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/players_data_scraper.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,6 +28,11 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/players_data.csvplayers_data.csv" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/constants.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/players_data_scraper.py" root0="FORCE_HIGHLIGHTING" />
+  </component>
   <component name="ProjectId" id="1vwOZh4COpntupeXBbAZOAYtAkm" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -35,6 +43,7 @@
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="configurable.group.project" />
   </component>
   <component name="RunManager" selected="Python.players_data_scraper">
     <configuration name="api_intgreation" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">

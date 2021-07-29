@@ -14,24 +14,48 @@ import argparse
 import pandas as pd
 import pymysql.cursors
 import numpy as np
+import logging
 import api_integration
+
+# The following code is used to set up the logger. It is mostly from the logging cookbook provided in the python
+# documentation
+
+logger = logging.getLogger('movies')
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    '%(asctime)s-%(levelname)s-FILE:%(filename)s-FUNC:%(funcName)s-LINE:%(lineno)d-%(message)s')
+
+file_handler = logging.FileHandler('movies.log')
+file_handler.setLevel(logging.DEBUG)  # This level is used to make sure the logger captures everything to the file
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setLevel(logging.WARNING)  # This level is used so that only warnings are printed out
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 
 def get_team_tables_from_api():
     """
-    Loads Teams Table from API Adresse to the database
+    Loads Teams Table from API Addresses to the database
     """
-    df_teams = api_integration.main()
-    df_teams_lists = df_teams.values.tolist()
-    cur.execute(
-        "CREATE TABLE IF NOT EXISTS teams (id int, abbreviation VARCHAR(100), city VARCHAR(100), "
-        "conference VARCHAR(100), "
-        " division VARCHAR(100), full_name VARCHAR(100), name VARCHAR(100))")
-    cur.execute(
-        " ALTER TABLE teams ADD UNIQUE INDEX (abbreviation, city, conference, division, full_name, name);")
-    sql = (f"INSERT IGNORE INTO teams (id, abbreviation, city, conference, division, full_name, name)"
-           f"VALUES(%s,%s,%s,%s,%s,%s,%s) ;")
-    cur.executemany(sql, df_teams_lists)
+    logging.debug(f'Loading Trams Table from API')
+    try:
+        df_teams = api_integration.main()
+        df_teams_lists = df_teams.values.tolist()
+        cur.execute(
+            "CREATE TABLE IF NOT EXISTS teams (id int, abbreviation VARCHAR(100), city VARCHAR(100), "
+            "conference VARCHAR(100), "
+            " division VARCHAR(100), full_name VARCHAR(100), name VARCHAR(100))")
+        cur.execute(
+            " ALTER TABLE teams ADD UNIQUE INDEX (abbreviation, city, conference, division, full_name, name);")
+        sql = (f"INSERT IGNORE INTO teams (id, abbreviation, city, conference, division, full_name, name)"
+               f"VALUES(%s,%s,%s,%s,%s,%s,%s) ;")
+        cur.executemany(sql, df_teams_lists)
+
+    except:
+        logging.debug(f'Failed to Load Teams Table from API')
 
     con.commit()
 
@@ -41,107 +65,137 @@ def connect_to_db():
     Connecting to MySql database
     """
 
-    username = constants.SQL_USER_NAME
-    password = constants.SQL_USER_PASSWORD
-    con = pymysql.connect(user=username, password=password)
-    cur = con.cursor()
-    cur.execute("CREATE DATABASE IF NOT EXISTS bask_play;")
-    cur.execute("use bask_play;")
+    logging.debug(f'Connecting to DataBase')
+    try:
+        username = constants.SQL_USER_NAME
+        password = constants.SQL_USER_PASSWORD
+        con = pymysql.connect(user=username, password=password)
+        cur = con.cursor()
+        cur.execute("CREATE DATABASE IF NOT EXISTS bask_play;")
+        cur.execute("use bask_play;")
+        return con, cur
 
-    return con, cur
+    except:
+        logging.warning(f'Unable to Connect to DataBase')
 
 
 def insert_position_in_db(new_positions):
     """
     Insert list of new_positions in database
     """
-    sql = (f"INSERT INTO positions ( position)"
-           f"VALUES(%s);")
-    cur.executemany(sql, new_positions)
-    con.commit()
+    logging.debug(f'Inserting into DataBase')
+    try:
+        sql = (f"INSERT INTO positions ( position)"
+               f"VALUES(%s);")
+        cur.executemany(sql, new_positions)
+        con.commit()
+    except:
+        logging.debug(f'Failed to insert into DataBase')
 
 
 def insert_college_in_db(new_colleges):
     """
     Insert list of new_colleges in database
     """
-    sql = (f"INSERT INTO colleges ( college)"
-           f"VALUES(%s);")
-    cur.executemany(sql, new_colleges)
-    con.commit()
+    logging.debug(f'Inserting colleges into DataBase')
+    try:
+        sql = (f"INSERT INTO colleges ( college)"
+               f"VALUES(%s);")
+        cur.executemany(sql, new_colleges)
+        con.commit()
+    except:
+        logging.debug(f'Failed to insert colleges into DataBase')
 
 
 def insert_players_to_position_in_db(players_data_frame):
     """
     Creates/Inserts ID References between players and positions
     """
-    cur.execute("SELECT id, position FROM positions")
-    id_positions = cur.fetchall()
-    conv_pos = dict((y, x) for x, y in id_positions)
-    players_data_frame = players_data_frame.assign(players_pos_id=[[conv_pos[k] for k in row if conv_pos.get(k)]
-                                                                   for row in players_data_frame.position])
-    df_id_play = get_players_id()
-    play_and_pos_ids = players_data_frame.merge(df_id_play, on='player')[['players_pos_id', 'id']]
-    play_and_pos_ids = play_and_pos_ids[play_and_pos_ids.players_pos_id.str.len() != 0]
-    cur.execute(
-        "CREATE TABLE IF NOT EXISTS players_to_pos (player_id int, pos_id int)")
-    cur.execute(
-        " ALTER TABLE players_to_pos ADD UNIQUE INDEX ( player_id, pos_id);")
-    sql = (f"INSERT IGNORE INTO players_to_pos ( pos_id, player_id)"
-           f"VALUES(%s,%s) ;")
-    cur.executemany(sql, play_and_pos_ids.explode('players_pos_id').values.tolist())
-    con.commit()
+    logging.debug(f'Inserting Players to Position in db')
+    try:
+        cur.execute("SELECT id, position FROM positions")
+        id_positions = cur.fetchall()
+        conv_pos = dict((y, x) for x, y in id_positions)
+        players_data_frame = players_data_frame.assign(players_pos_id=[[conv_pos[k] for k in row if conv_pos.get(k)]
+                                                                       for row in players_data_frame.position])
+        df_id_play = get_players_id()
+        play_and_pos_ids = players_data_frame.merge(df_id_play, on='player')[['players_pos_id', 'id']]
+        play_and_pos_ids = play_and_pos_ids[play_and_pos_ids.players_pos_id.str.len() != 0]
+        cur.execute(
+            "CREATE TABLE IF NOT EXISTS players_to_pos (player_id int, pos_id int)")
+        cur.execute(
+            " ALTER TABLE players_to_pos ADD UNIQUE INDEX ( player_id, pos_id);")
+        sql = (f"INSERT IGNORE INTO players_to_pos ( pos_id, player_id)"
+               f"VALUES(%s,%s) ;")
+        cur.executemany(sql, play_and_pos_ids.explode('players_pos_id').values.tolist())
+        con.commit()
+
+    except:
+        logging.debuf(f'Unable to insert player position into DataBase')
 
 
 def insert_players_to_college_in_db(players_data_frame):
     """
     Creates/Inserts ID References between players and colleges
     """
-    cur.execute("SELECT id, college FROM colleges")
-    id_colleges = cur.fetchall()
-    conv_col = dict((y, x) for x, y in id_colleges)
-    players_data_frame = players_data_frame.assign(players_col_id=[[conv_col[k] for k in row if conv_col.get(k)]
-                                                                   for row in players_data_frame.colleges])
-    df_id_play = get_players_id()
-    play_and_col_ids = players_data_frame.merge(df_id_play, on='player')[['players_col_id', 'id']]
-    play_and_col_ids = play_and_col_ids[play_and_col_ids.players_col_id.str.len() != 0]
-    cur.execute(
-        "CREATE TABLE IF NOT EXISTS players_to_college (player_id int, col_id int)")
-    cur.execute(
-        " ALTER TABLE players_to_college ADD UNIQUE INDEX ( player_id, col_id);")
-    sql = (f"INSERT IGNORE INTO players_to_college ( col_id, player_id)"
-           f"VALUES(%s,%s) ;")
-    cur.executemany(sql, play_and_col_ids.explode('players_col_id').values.tolist())
-    con.commit()
+    logging.debug(f'Inserting players to colleges in DataBase')
+    try:
+        cur.execute("SELECT id, college FROM colleges")
+        id_colleges = cur.fetchall()
+        conv_col = dict((y, x) for x, y in id_colleges)
+        players_data_frame = players_data_frame.assign(players_col_id=[[conv_col[k] for k in row if conv_col.get(k)]
+                                                                       for row in players_data_frame.colleges])
+        df_id_play = get_players_id()
+        play_and_col_ids = players_data_frame.merge(df_id_play, on='player')[['players_col_id', 'id']]
+        play_and_col_ids = play_and_col_ids[play_and_col_ids.players_col_id.str.len() != 0]
+        cur.execute(
+            "CREATE TABLE IF NOT EXISTS players_to_college (player_id int, col_id int)")
+        cur.execute(
+            " ALTER TABLE players_to_college ADD UNIQUE INDEX ( player_id, col_id);")
+        sql = (f"INSERT IGNORE INTO players_to_college ( col_id, player_id)"
+               f"VALUES(%s,%s) ;")
+        cur.executemany(sql, play_and_col_ids.explode('players_col_id').values.tolist())
+        con.commit()
+
+    except:
+        logging.debug(f'Unable to insert platers to college data into DataBase')
 
 
 def get_players_id():
     """
     Returns database id's from players
     """
-    cur.execute("SELECT id, player  FROM players where id >= id ")
-    id_player = cur.fetchall()
-    df_id_play = pd.DataFrame(
-        id_player, columns=['id', 'player'])
-    return df_id_play
+    logging.debug(f'Getting Player ID')
+    try:
+        cur.execute("SELECT id, player  FROM players where id >= id ")
+        id_player = cur.fetchall()
+        df_id_play = pd.DataFrame(
+            id_player, columns=['id', 'player'])
+        return df_id_play
+    except:
+        logging.debug(f'Unable to Get Player IDs')
 
 
 def insert_player_in_db(players_data_frame):
     """
         Creates from the dataframe 'players_data_frame' the database
     """
+    logging.debug(f'Inserting players in DataBase')
+    try:
+        play_data_list = players_data_frame.drop(['position', 'colleges'], axis=1).values.tolist()
+        cur.execute(
+            "CREATE TABLE IF NOT EXISTS players (id int AUTO_INCREMENT PRIMARY KEY, player VARCHAR(100), start_year INT"
+            ",end_year INT, height VARCHAR(100), weight INT, birth_date VARCHAR(100))")
+        cur.execute(
+            " ALTER TABLE PLAYERS ADD UNIQUE INDEX ( player,start_year,end_year,height,weight,birth_date);")
+        sql = (f"INSERT IGNORE INTO players ( player,start_year,end_year,height,weight,birth_date)"
+               f"VALUES(%s,%s,%s,%s,%s,%s) ;")
+        cur.executemany(sql, play_data_list)
 
-    play_data_list = players_data_frame.drop(['position', 'colleges'], axis=1).values.tolist()
-    cur.execute(
-        "CREATE TABLE IF NOT EXISTS players (id int AUTO_INCREMENT PRIMARY KEY, player VARCHAR(100), start_year INT"
-        ",end_year INT, height VARCHAR(100), weight INT, birth_date VARCHAR(100))")
-    cur.execute(
-        " ALTER TABLE PLAYERS ADD UNIQUE INDEX ( player,start_year,end_year,height,weight,birth_date);")
-    sql = (f"INSERT IGNORE INTO players ( player,start_year,end_year,height,weight,birth_date)"
-           f"VALUES(%s,%s,%s,%s,%s,%s) ;")
-    cur.executemany(sql, play_data_list)
+        con.commit()
 
-    con.commit()
+    except:
+        logging.debug(f'Unable to insert players into DataBase')
 
 
 def create_urls_list():
@@ -151,12 +205,16 @@ def create_urls_list():
     player that ever played in the NBA league.
     :return: lst, of  https://www.basketball-reference.com/ website URL's needed for scraping.
     """
-    base_url = constants.BASE_URL
-    for_slash = constants.FORWARD_SLASH
-    a_z_urls = []
-    for char in constants.A_TO_Z:
-        a_z_urls.append(base_url + char + for_slash)
-    return a_z_urls
+    logging.debug(f'Creating URLs for scraper')
+    try:
+        base_url = constants.BASE_URL
+        for_slash = constants.FORWARD_SLASH
+        a_z_urls = []
+        for char in constants.A_TO_Z:
+            a_z_urls.append(base_url + char + for_slash)
+        return a_z_urls
+    except:
+        logging.debug(f'Unable to create URLs for scraper')
 
 
 def create_players_dict():
@@ -165,9 +223,13 @@ def create_players_dict():
     will be written.
     :return: dict.
     """
-    players_dict = {'player': [], 'start_year': [], 'end_year': [], 'position': [],
-                    'height': [], 'weight': [], 'birth_date': [], 'colleges': []}
-    return players_dict
+    logging.debug(f'Creating Player Dictionary')
+    try:
+        players_dict = {'player': [], 'start_year': [], 'end_year': [], 'position': [],
+                        'height': [], 'weight': [], 'birth_date': [], 'colleges': []}
+        return players_dict
+    except:
+        logging.debug(f'Unable to create player dictionary')
 
 
 def get_letter_page_soup_obj(url):
@@ -177,10 +239,14 @@ def get_letter_page_soup_obj(url):
     :param url: str, represents a website's URL to form a web request from.
     :return: BeautifulSoup object of the website's URL HTML code.
     """
-    page = requests.get(url)
-    letter_page_soup = BeautifulSoup(page.content, 'html.parser')
-    print(constants.RETRIEVING_DATA_MSG)
-    return letter_page_soup
+    logging.debug(f'Getting Soup Object')
+    try:
+        page = requests.get(url)
+        letter_page_soup = BeautifulSoup(page.content, 'html.parser')
+        print(constants.RETRIEVING_DATA_MSG)
+        return letter_page_soup
+    except:
+        logging.debug(f'Unable to get soup object')
 
 
 def check_scope_value(scope):
@@ -191,19 +257,23 @@ def check_scope_value(scope):
     :param scope: str, the value provided as the program's --scope argument.
     :return: str/tuple/None
     """
-    if '-' in scope:
-        scope_list = scope.split('-')
-        if len(scope_list) == 2:
-            for part in scope_list:
-                if not ((part.isalpha()) & (len(part) == 1)):
-                    return None
-            return 'letter_range', scope_list[0].lower(), scope_list[1].lower()
-    elif (len(scope) == 1) & (scope.isalpha()):
-        return 'letter', scope.lower()
-    elif scope == 'all':
-        return 'all'
-    else:
-        return None
+    logging.debug(f'Checking Scope Values')
+    try:
+        if '-' in scope:
+            scope_list = scope.split('-')
+            if len(scope_list) == 2:
+                for part in scope_list:
+                    if not ((part.isalpha()) & (len(part) == 1)):
+                        return None
+                return 'letter_range', scope_list[0].lower(), scope_list[1].lower()
+        elif (len(scope) == 1) & (scope.isalpha()):
+            return 'letter', scope.lower()
+        elif scope == 'all':
+            return 'all'
+        else:
+            return None
+    except:
+        logging.debug(f'Error checking scope values')
 
 
 def get_url_idx(letter):
@@ -213,7 +283,10 @@ def get_url_idx(letter):
     :param letter: str, one alphabetical letter.
     :return: int, representing the index of the letter web page url.
     """
-    return constants.A_TO_Z.index(letter)
+    try:
+        return constants.A_TO_Z.index(letter)
+    except:
+        logging.debug(f'Unable to get URL index')
 
 
 def get_letter_players_data(urls_list, players_dict, letter):
@@ -226,9 +299,12 @@ def get_letter_players_data(urls_list, players_dict, letter):
     :param letter: str, one alphabetical letter.
     :return: dict, containing the players data.
     """
-    url_idx = get_url_idx(letter)
-    url = urls_list[url_idx]
-    return get_all_players_data([url], players_dict)
+    try:
+        url_idx = get_url_idx(letter)
+        url = urls_list[url_idx]
+        return get_all_players_data([url], players_dict)
+    except:
+        logging.debug(f'Unable to get letter players data')
 
 
 def get_letter_range_players_data(urls_list, players_dict, letter1, letter2):
@@ -242,10 +318,15 @@ def get_letter_range_players_data(urls_list, players_dict, letter1, letter2):
     :param letter2: str, one alphabetical letter, represent the last letter in the letters range.
     :return: dict, containing the players data.
     """
-    url1_idx = get_url_idx(letter1)
-    url2_idx = get_url_idx(letter2)
-    range_urls_list = urls_list[url1_idx:url2_idx + 1]
-    return get_all_players_data(range_urls_list, players_dict)
+
+    logging.debug(f'Getting letter range players data')
+    try:
+        url1_idx = get_url_idx(letter1)
+        url2_idx = get_url_idx(letter2)
+        range_urls_list = urls_list[url1_idx:url2_idx + 1]
+        return get_all_players_data(range_urls_list, players_dict)
+    except:
+        logging.debug(f'Unable to get letter range players data')
 
 
 def scrape_player_data(tr, players_dict, positions, colleges):
@@ -259,26 +340,30 @@ def scrape_player_data(tr, players_dict, positions, colleges):
     :param colleges: list of colleges in db.
     :return: players_dict: dict, containing the players data.
     """
-    players_dict['player'].append(tr.a.text)
-    players_dict['start_year'].append(tr.find('td', {'data-stat': 'year_min'}).text)
-    players_dict['end_year'].append(tr.find('td', {'data-stat': 'year_max'}).text)
-    players_dict['position'].append(tr.find('td', {'data-stat': 'pos'}).text.split('-'))
-    pos = tr.find('td', {'data-stat': 'pos'}).text.split('-')
-    new_positions = list(np.setdiff1d(pos, positions))
-    if new_positions not in [[''], []]:
-        insert_position_in_db(new_positions)
-        positions += new_positions
-    # print()
-    players_dict['height'].append(tr.find('td', {'data-stat': 'height'}).text)
-    players_dict['weight'].append(tr.find('td', {'data-stat': 'weight'}).text)
-    players_dict['birth_date'].append(tr.find('td', {'data-stat': 'birth_date'}).text)
-    players_dict['colleges'].append(tr.find('td', {'data-stat': 'colleges'}).text.split(', '))
-    col = tr.find('td', {'data-stat': 'colleges'}).text.split(', ')
-    new_col = list(np.setdiff1d(col, colleges))
-    if new_col not in [[''], []]:
-        insert_college_in_db(new_col)
-        colleges += new_col
-    return players_dict
+    logging.debug(f'Scraping Player Data')
+    try:
+        players_dict['player'].append(tr.a.text)
+        players_dict['start_year'].append(tr.find('td', {'data-stat': 'year_min'}).text)
+        players_dict['end_year'].append(tr.find('td', {'data-stat': 'year_max'}).text)
+        players_dict['position'].append(tr.find('td', {'data-stat': 'pos'}).text.split('-'))
+        pos = tr.find('td', {'data-stat': 'pos'}).text.split('-')
+        new_positions = list(np.setdiff1d(pos, positions))
+        if new_positions not in [[''], []]:
+            insert_position_in_db(new_positions)
+            positions += new_positions
+        # print()
+        players_dict['height'].append(tr.find('td', {'data-stat': 'height'}).text)
+        players_dict['weight'].append(tr.find('td', {'data-stat': 'weight'}).text)
+        players_dict['birth_date'].append(tr.find('td', {'data-stat': 'birth_date'}).text)
+        players_dict['colleges'].append(tr.find('td', {'data-stat': 'colleges'}).text.split(', '))
+        col = tr.find('td', {'data-stat': 'colleges'}).text.split(', ')
+        new_col = list(np.setdiff1d(col, colleges))
+        if new_col not in [[''], []]:
+            insert_college_in_db(new_col)
+            colleges += new_col
+        return players_dict
+    except:
+        logging.info(f'Unable to Scrape Player Info')
 
 
 def scrape_letter_players_data(letter_page_soup_obj, players_dict, positions, colleges):
@@ -293,10 +378,14 @@ def scrape_letter_players_data(letter_page_soup_obj, players_dict, positions, co
     :param colleges: list of colleges in db.
     :return: dict, containing the players data.
     """
-    for tr in letter_page_soup_obj.find_all('tr'):
-        if tr.find('a'):
-            players_dict = scrape_player_data(tr, players_dict, positions, colleges)
-    return players_dict
+    logging.debug(f'Scraping for letter')
+    try:
+        for tr in letter_page_soup_obj.find_all('tr'):
+            if tr.find('a'):
+                players_dict = scrape_player_data(tr, players_dict, positions, colleges)
+        return players_dict
+    except:
+        logging.debug(f'Unable to get player letter')
 
 
 def get_all_players_data(urls_list, players_dict, positions, colleges):
@@ -309,11 +398,15 @@ def get_all_players_data(urls_list, players_dict, positions, colleges):
     :param colleges: list of colleges in db.
     :return: dict, containing the players data.
     """
-    print(constants.SCRAPING_MSG)
-    for url in urls_list:
-        letter_page_soup = get_letter_page_soup_obj(url)
-        players_dict = scrape_letter_players_data(letter_page_soup, players_dict, positions, colleges)
-    return players_dict
+    logging.debug(f'Creating all players dictionary')
+    try:
+        print(constants.SCRAPING_MSG)
+        for url in urls_list:
+            letter_page_soup = get_letter_page_soup_obj(url)
+            players_dict = scrape_letter_players_data(letter_page_soup, players_dict, positions, colleges)
+        return players_dict
+    except:
+        logging.debug(f"Unable to create all players dictionary")
 
 
 def create_players_data_frame(players_dict):
@@ -323,7 +416,11 @@ def create_players_data_frame(players_dict):
     :param players_dict: dict, containing the players data.
     :return: pandas DataFrame object.
     """
-    return pd.DataFrame(players_dict)
+    logging.debug(f'Creating players DataFrame')
+    try:
+        return pd.DataFrame(players_dict)
+    except:
+        logging.debug(f'Unable to create players DataFrame')
 
 
 def write_players_data_to_csv(players_df, path=None):
@@ -336,12 +433,16 @@ def write_players_data_to_csv(players_df, path=None):
     :param path: str, representing a file absolute file.
     :return: str, representing the path to which the .csv file was written.
     """
-    if path:
-        path = path + constants.CSV_FILE_NAME
-    else:
-        path = constants.CSV_FILE_NAME
-    players_df.to_csv(path, index=False)
-    return path
+    logging.debug(f'Writing player data to CSV')
+    try:
+        if path:
+            path = path + constants.CSV_FILE_NAME
+        else:
+            path = constants.CSV_FILE_NAME
+        players_df.to_csv(path, index=False)
+        return path
+    except:
+        logging.debug(f'Unable to write player data to CSV')
 
 
 def operate_commandline_argument_parser():
@@ -385,52 +486,69 @@ def get_positions():
     """
     Returns all positions from mysql table to a python list
     """
-    cur.execute(
-        "CREATE TABLE IF NOT EXISTS positions (id int AUTO_INCREMENT PRIMARY KEY, position VARCHAR(100))")
-    cur.execute("SELECT position FROM positions")
-    positions = cur.fetchall()
-    return list(positions)
+    logging.debug("Getting positions from SQL")
+    try:
+        cur.execute(
+            "CREATE TABLE IF NOT EXISTS positions (id int AUTO_INCREMENT PRIMARY KEY, position VARCHAR(100))")
+        cur.execute("SELECT position FROM positions")
+        positions = cur.fetchall()
+        return list(positions)
+    except:
+        logging.debug(f'Unable to get positions from SQL')
 
 
 def get_colleges():
     """
     Returns all colleges from mysql table to a python list
     """
-    cur.execute(
-        "CREATE TABLE IF NOT EXISTS colleges (id int AUTO_INCREMENT PRIMARY KEY, college VARCHAR(100))")
-    cur.execute("SELECT college FROM colleges")
-    colleges = cur.fetchall()
-    return list(colleges)
+    logging.debug(f'Getting colleges from SQL DataBase')
+    try:
+        cur.execute(
+            "CREATE TABLE IF NOT EXISTS colleges (id int AUTO_INCREMENT PRIMARY KEY, college VARCHAR(100))")
+        cur.execute("SELECT college FROM colleges")
+        colleges = cur.fetchall()
+        return list(colleges)
+    except:
+        logging.debug(f'Unable to get colleges from SQL database')
 
 
 def get_path():
     """
     This function determines the path according to the user path defined on constants.
     """
-    if constants.USER_PATH:
-        path = constants.USER_PATH + constants.FORWARD_SLASH
-    else:
-        path = constants.USER_PATH
-    return path
+    logging.debug(f'Getting path')
+    try:
+        if constants.USER_PATH:
+            path = constants.USER_PATH + constants.FORWARD_SLASH
+        else:
+            path = constants.USER_PATH
+        return path
+    except:
+        logging.debug(f'Unable to get path')
 
 
 def get_scope(scope, urls_list, players_dict, positions, colleges):
     """
     This function checks the value of scope and calls for the appropriate function.
     """
-    if scope == 'all':
-        players_dict = get_all(urls_list, players_dict, positions, colleges)
-    elif scope[0] == 'letter':
-        players_dict = get_letter(urls_list, players_dict, scope[1])
-    elif scope[0] == 'letter_range':
-        players_dict = get_letter_rang(urls_list, players_dict, scope[1], scope[2])
-    return players_dict
+    logging.debug(f'Getting Scope')
+    try:
+        if scope == 'all':
+            players_dict = get_all(urls_list, players_dict, positions, colleges)
+        elif scope[0] == 'letter':
+            players_dict = get_letter(urls_list, players_dict, scope[1])
+        elif scope[0] == 'letter_range':
+            players_dict = get_letter_rang(urls_list, players_dict, scope[1], scope[2])
+        return players_dict
+    except:
+        logging.debug(f'Unable to get Scope')
 
 
 def get_all(urls_list, players_dict, positions, colleges):
     """
     This function gets all players data in case scope value is 'all'.
     """
+    logging.debug(f'Getting all players info')
     try:
         players_dict = get_all_players_data(urls_list, players_dict, positions, colleges)
         return players_dict
@@ -466,18 +584,26 @@ def pickle_dataframe(path):
     """
     This function pickles the data dataframe.
     """
-    path_pkl = path + constants.PKL_FILE_NAME
-    players_data_frame.to_pickle(path=path_pkl)
-    print(constants.DF_CREATED_SERIALIZED_MSG)
+    logging.debug(f'Creating pickle file')
+    try:
+        path_pkl = path + constants.PKL_FILE_NAME
+        players_data_frame.to_pickle(path=path_pkl)
+        print(constants.DF_CREATED_SERIALIZED_MSG)
+    except:
+        logging.debug(f'Unable to create pickle file')
 
 
 def handle_csv(path, players_data_frame):
     """
     This function handles the creation of a .csv file out of players_data_frame.
     """
-    path_csv = path + constants.CSV_FILE_NAME
-    write_players_data_to_csv(players_data_frame, path=path_csv)
-    print(constants.WRITTEN_TO_FILE_MSG.format(path_csv))
+    logging.debug(f'Creating CSV from players DataFrame')
+    try:
+        path_csv = path + constants.CSV_FILE_NAME
+        write_players_data_to_csv(players_data_frame, path=path_csv)
+        print(constants.WRITTEN_TO_FILE_MSG.format(path_csv))
+    except:
+        logging.debug(f'Unable to create CSV from players DataFrame')
 
 
 def handle_database(players_data_frame):
@@ -485,13 +611,17 @@ def handle_database(players_data_frame):
     This function handles the creation of a data-base, if was not created before,
     and the writing the data to it.
     """
-    players_data_frame.loc[players_data_frame.weight == '', :] = 0  # replaces empty string values in weight with 0
-    players_data_frame = players_data_frame[(players_data_frame.T != 0).any()]  # deletes empty rows
-    insert_player_in_db(players_data_frame)
-    insert_players_to_position_in_db(players_data_frame)
-    insert_players_to_college_in_db(players_data_frame)
-    get_team_tables_from_api()
-    print(constants.WRITTEN_TO_DATA_BASE_MSG)
+    logging.debug(f'Creating DataBase under handle database')
+    try:
+        players_data_frame.loc[players_data_frame.weight == '', :] = 0  # replaces empty string values in weight with 0
+        players_data_frame = players_data_frame[(players_data_frame.T != 0).any()]  # deletes empty rows
+        insert_player_in_db(players_data_frame)
+        insert_players_to_position_in_db(players_data_frame)
+        insert_players_to_college_in_db(players_data_frame)
+        get_team_tables_from_api()
+        print(constants.WRITTEN_TO_DATA_BASE_MSG)
+    except:
+        logging.debug(f'Unable to create DataBase under handle database')
 
 
 con, cur = connect_to_db()
