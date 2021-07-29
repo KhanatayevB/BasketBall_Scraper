@@ -43,13 +43,12 @@ def connect_to_db():
 
     username = constants.SQL_USER_NAME
     password = constants.SQL_USER_PASSWORD
-    con_without_db = pymysql.connect(user=username, password=password)
-    cur_without_db = con_without_db.cursor()
-    cur_without_db.execute("CREATE DATABASE IF NOT EXISTS bask_play;")
-    con_with_db = pymysql.connect(user=username, password=password, database='bask_play')
-    cur_with_db = con_without_db.cursor()
-    cur_without_db.execute("use bask_play;")
-    return con_with_db, cur_with_db
+    con = pymysql.connect(user=username, password=password)
+    cur = con.cursor()
+    cur.execute("CREATE DATABASE IF NOT EXISTS bask_play;")
+    cur.execute("use bask_play;")
+
+    return con, cur
 
 
 def insert_position_in_db(new_positions):
