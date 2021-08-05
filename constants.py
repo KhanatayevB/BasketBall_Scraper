@@ -34,3 +34,5 @@ API_HOST_VALUE = 'free-nba.p.rapidapi.com'
 URL = 'url'
 HEADERS = 'headers'
 PARAMS = 'params'
+PLAYERS_START_PAGE = 0
+PLAYERS_LAST_PAGE = 20

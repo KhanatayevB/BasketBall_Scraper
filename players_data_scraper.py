@@ -17,15 +17,54 @@ import numpy as np
 import api_integration
 
 
-def get_team_tables_from_api():
+def get_tables_from_api():
     """
-    Loads Teams Table from API Adresse to the database
+    Load Tables teams and player_in_team from API
     """
-    df_teams = api_integration.main()
+    df_teams, df_play_team = api_integration.main()
+    return df_teams, df_play_team
+
+
+def get_players_team_ids(df_play_team):
+    """
+    Extracts and return IDs from players and team tables based on df_play_team
+    """
+    play_and_team_ids = []
+    for index, row in df_play_team.iterrows():
+        play_name = f'{row.first_name} {row.last_name}'
+        cur.execute(f'SELECT id FROM players where player = "{play_name}" order by start_year desc')
+        play_id = cur.fetchall()
+        cur.execute(f"SELECT id FROM teams where full_name = '{row.teams}'")
+        team_id = cur.fetchall()
+        if play_id != ():
+            play_and_team_ids.append((play_id[0][0], team_id[0][0]))
+
+    return play_and_team_ids
+
+
+def insert_players_to_team_in_db(play_and_team_ids):
+    """
+    Insert list of play and teams ids to db
+    """
+    cur.execute(
+        "CREATE TABLE IF NOT EXISTS players_to_team (player_id int, team_id int)")
+    cur.execute(
+        " ALTER TABLE players_to_team ADD UNIQUE INDEX ( player_id, team_id);")
+    sql = (f"INSERT IGNORE INTO players_to_team ( player_id, team_id)"
+           f"VALUES(%s,%s) ;")
+
+    cur.executemany(sql, play_and_team_ids)
+    con.commit()
+
+
+def get_team_tables_from_api(df_teams):
+    """
+    Loads Teams Table to databse
+    """
     df_teams_lists = df_teams.values.tolist()
     cur.execute(
-        "CREATE TABLE IF NOT EXISTS teams (id int, abbreviation VARCHAR(100), city VARCHAR(100), "
-        "conference VARCHAR(100), "
+        "CREATE TABLE IF NOT EXISTS teams (id int AUTO_INCREMENT PRIMARY KEY, abbreviation VARCHAR(100), "
+        "city VARCHAR(100), conference VARCHAR(100), "
         " division VARCHAR(100), full_name VARCHAR(100), name VARCHAR(100))")
     cur.execute(
         " ALTER TABLE teams ADD UNIQUE INDEX (abbreviation, city, conference, division, full_name, name);")
@@ -451,13 +490,17 @@ def main():
         print(constants.WRITTEN_TO_FILE_MSG.format(path_csv))
     if args.database:
         players_data_frame.loc[players_data_frame.weight == '', :] = 0  # replaces empty string values in weight with 0
-        players_data_frame = players_data_frame[(players_data_frame.T != 0).any()] # deletes empty rows
+        players_data_frame = players_data_frame[(players_data_frame.T != 0).any()]  # deletes empty rows
         insert_player_in_db(players_data_frame)
         insert_players_to_position_in_db(players_data_frame)
         insert_players_to_college_in_db(players_data_frame)
-        get_team_tables_from_api()
+        df_teams, df_play_team = get_tables_from_api()
+        get_team_tables_from_api(df_teams)
+        play_and_team_ids = get_players_team_ids(df_play_team)
+        insert_players_to_team_in_db(play_and_team_ids)
         print(constants.WRITTEN_TO_DATA_BASE_MSG)
 
-con, cur = connect_to_db()
+
 if __name__ == '__main__':
+    con, cur = connect_to_db()
     main()
