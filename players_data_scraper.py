@@ -442,6 +442,102 @@ def get_colleges():
     return list(colleges)
 
 
+
+def get_path():
+    """
+    This function determines the path according to the user path defined on constants.
+    """
+    if constants.USER_PATH:
+        path = constants.USER_PATH + constants.FORWARD_SLASH
+    else:
+        path = constants.USER_PATH
+    return path
+
+
+def get_scope(scope, urls_list, players_dict, positions, colleges):
+    """
+    This function checks the value of scope and calls for the appropriate function.
+    """
+    if scope == 'all':
+        players_dict = get_all(urls_list, players_dict, positions, colleges)
+    elif scope[0] == 'letter':
+        players_dict = get_letter(urls_list, players_dict, scope[1])
+    elif scope[0] == 'letter_range':
+        players_dict = get_letter_rang(urls_list, players_dict, scope[1], scope[2])
+    return players_dict
+
+
+def get_all(urls_list, players_dict, positions, colleges):
+    """
+    This function gets all players data in case scope value is 'all'.
+    """
+    try:
+        players_dict = get_all_players_data(urls_list, players_dict, positions, colleges)
+        return players_dict
+    except Exception as error:
+        display_error_and_terminate(error)
+
+
+def get_letter(urls_list, players_dict, letter):
+    """
+    This function gets all players with a name starts at ath the chosen letter, data, in case
+    scope value is a letter.
+    """
+    try:
+        players_dict = get_letter_players_data(urls_list, players_dict, letter)
+        return players_dict
+    except Exception as error:
+        display_error_and_terminate(error)
+
+
+def get_letter_rang(urls_list, players_dict, letter1, letter2):
+    """
+    This function gets all players with a name starts at ath the chosen letter, data, in case
+    scope value holds a range of letters.
+    """
+    try:
+        players_dict = get_letter_range_players_data(urls_list, players_dict, letter1, letter2)
+        return players_dict
+    except Exception as error:
+        display_error_and_terminate(error)
+
+
+def pickle_dataframe(path):
+    """
+    This function pickles the data dataframe.
+    """
+    path_pkl = path + constants.PKL_FILE_NAME
+    players_data_frame.to_pickle(path=path_pkl)
+    print(constants.DF_CREATED_SERIALIZED_MSG)
+
+
+def handle_csv(path, players_data_frame):
+    """
+    This function handles the creation of a .csv file out of players_data_frame.
+    """
+    path_csv = path + constants.CSV_FILE_NAME
+    write_players_data_to_csv(players_data_frame, path=path_csv)
+    print(constants.WRITTEN_TO_FILE_MSG.format(path_csv))
+
+
+def handle_database(players_data_frame):
+    """
+    This function handles the creation of a data-base, if was not created before,
+    and the writing the data to it.
+    """
+    players_data_frame.loc[players_data_frame.weight == '', :] = 0  # replaces empty string values in weight with 0
+    players_data_frame = players_data_frame[(players_data_frame.T != 0).any()]  # deletes empty rows
+    insert_player_in_db(players_data_frame)
+    insert_players_to_position_in_db(players_data_frame)
+    insert_players_to_college_in_db(players_data_frame)
+    df_teams, df_play_team = get_tables_from_api()
+    get_team_tables_from_api(df_teams)
+    play_and_team_ids = get_players_team_ids(df_play_team)
+    insert_players_to_team_in_db(play_and_team_ids)
+    print(constants.WRITTEN_TO_DATA_BASE_MSG)
+
+
+
 def main():
     """
     This is main(). The main function calls all necessary functions needed for scraping all of the
@@ -454,52 +550,21 @@ def main():
     positions = get_positions()
     colleges = get_colleges()
     scope = check_scope_value(args.scope)
-    if constants.USER_PATH:
-        path = constants.USER_PATH + constants.FORWARD_SLASH
-    else:
-        path = constants.USER_PATH
-    if scope == 'all':
-        try:
-            players_dict = get_all_players_data(urls_list, players_dict, positions, colleges)
-        except Exception as error:
-            display_error_and_terminate(error)
-    elif scope[0] == 'letter':
-        try:
-            players_dict = get_letter_players_data(urls_list, players_dict, scope[1])
-        except Exception as error:
-            display_error_and_terminate(error)
-    elif scope[0] == 'letter_range':
-        try:
-            players_dict = get_letter_range_players_data(urls_list, players_dict, scope[1], scope[2])
-        except Exception as error:
-            display_error_and_terminate(error)
+    path = get_path()
+    if (scope == 'all') | (scope[0] == 'letter') | (scope[0] == 'letter_range'):
+        players_dict = get_scope(scope, urls_list, players_dict, positions, colleges)
     elif not scope:
         print(constants.BAD_SCOPE_ARG_MSG)
         sys.exit(0)
     players_data_frame = create_players_data_frame(players_dict)
-
     if args.print:
         print(players_data_frame)
     if args.dataframe:
-        path_pkl = path + constants.PKL_FILE_NAME
-        players_data_frame.to_pickle(path=path_pkl)
-        print(constants.DF_CREATED_SERIALIZED_MSG)
+        pickle_dataframe(path)
     if args.csv:
-        path_csv = path + constants.CSV_FILE_NAME
-        write_players_data_to_csv(players_data_frame, path=path_csv)
-        print(constants.WRITTEN_TO_FILE_MSG.format(path_csv))
+        handle_csv(path, players_data_frame)
     if args.database:
-        players_data_frame.loc[players_data_frame.weight == '', :] = 0  # replaces empty string values in weight with 0
-        players_data_frame = players_data_frame[(players_data_frame.T != 0).any()]  # deletes empty rows
-        insert_player_in_db(players_data_frame)
-        insert_players_to_position_in_db(players_data_frame)
-        insert_players_to_college_in_db(players_data_frame)
-        df_teams, df_play_team = get_tables_from_api()
-        get_team_tables_from_api(df_teams)
-        play_and_team_ids = get_players_team_ids(df_play_team)
-        insert_players_to_team_in_db(play_and_team_ids)
-        print(constants.WRITTEN_TO_DATA_BASE_MSG)
-
+        handle_database(players_data_frame)
 
 if __name__ == '__main__':
     con, cur = connect_to_db()
