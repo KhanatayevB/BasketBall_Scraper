@@ -400,6 +400,13 @@ def create_players_data_frame(players_dict):
     :param players_dict: dict, containing the players data.
     :return: pandas DataFrame object.
     """
+    players_df = pd.DataFrame(players_dict)
+    foot_to_cm = 30.48
+    inch_to_cm = 2.54
+    players_df['weight']
+    weight_split = pd.Series(players_df['weight'].str.split('-'))
+    players_df['weight'] = weight_split.apply(lambda x: int(x[0])*foot_to_cm + int(x[1])*inch_to_cm)
+    players_df['height'] = players_df['height']*0.4536
     return pd.DataFrame(players_dict)
 
 
