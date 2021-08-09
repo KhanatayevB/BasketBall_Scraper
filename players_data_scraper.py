@@ -208,7 +208,7 @@ def insert_player_in_db(players_data_frame):
         "CREATE TABLE IF NOT EXISTS players (id int AUTO_INCREMENT PRIMARY KEY, player VARCHAR(100), start_year INT"
         ",end_year INT, height VARCHAR(100), weight INT, birth_date VARCHAR(100))")
     cur.execute(
-        " ALTER TABLE PLAYERS ADD UNIQUE INDEX ( player,start_year,end_year,height,weight,birth_date);")
+        " ALTER TABLE players ADD UNIQUE INDEX ( player,start_year,end_year,height,weight,birth_date);")
     sql = (f"INSERT IGNORE INTO players ( player,start_year,end_year,height,weight,birth_date)"
            f"VALUES(%s,%s,%s,%s,%s,%s) ;")
     cur.executemany(sql, play_data_list)
