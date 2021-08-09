@@ -5,6 +5,7 @@ data from the https://www.basketball-reference.com/ website.
 
 Authors: Bazham Khanatayev, David Muenz and Eyal Ran.
 """
+import logging
 
 import constants
 import sys
@@ -16,51 +17,81 @@ import pymysql.cursors
 import numpy as np
 import api_integration
 
+# The following code is used to set up the logger. It is mostly from the logging cookbook provided in the python
+# documentation
+
+logger = logging.getLogger('basketBall_scraper')
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    '%(asctime)s-%(levelname)s-FILE:%(filename)s-FUNC:%(funcName)s-LINE:%(lineno)d-%(message)s')
+
+file_handler = logging.FileHandler('basketball_scraper.log')
+file_handler.setLevel(logging.DEBUG)  # This level is used to make sure the logger captures everything to the file
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setLevel(logging.WARNING)  # This level is used so that only warnings are printed out
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+
+
 
 def get_tables_from_api():
     """
     Load Tables teams and player_in_team from API
     """
-    df_teams, df_play_team = api_integration.main()
-    return df_teams, df_play_team
-
+    logging.debug(f'Getting tables from API')
+    try:
+        df_teams, df_play_team = api_integration.main()
+        return df_teams, df_play_team
+    except Exception:
+        logging.error(f'Failed to get tables from API')
 
 def get_players_team_ids(df_play_team):
     """
     Extracts and return IDs from players and team tables based on df_play_team
     """
-    play_and_team_ids = []
-    for index, row in df_play_team.iterrows():
-        play_name = f'{row.first_name} {row.last_name}'
-        cur.execute(f'SELECT id FROM players where player = "{play_name}" order by start_year desc')
-        play_id = cur.fetchall()
-        cur.execute(f"SELECT id FROM teams where full_name = '{row.teams}'")
-        team_id = cur.fetchall()
-        if play_id != ():
-            play_and_team_ids.append((play_id[0][0], team_id[0][0]))
+    try:
+        play_and_team_ids = []
+        for index, row in df_play_team.iterrows():
+            play_name = f'{row.first_name} {row.last_name}'
+            cur.execute(f'SELECT id FROM players where player = "{play_name}" order by start_year desc')
+            play_id = cur.fetchall()
+            cur.execute(f"SELECT id FROM teams where full_name = '{row.teams}'")
+            team_id = cur.fetchall()
+            if play_id != ():
+                play_and_team_ids.append((play_id[0][0], team_id[0][0]))
+            return play_and_team_ids
+    except Exception:
+        logging.debug(f'Failed to get player ID')
 
-    return play_and_team_ids
 
 
 def insert_players_to_team_in_db(play_and_team_ids):
     """
     Insert list of play and teams ids to db
     """
-    cur.execute(
-        "CREATE TABLE IF NOT EXISTS players_to_team (player_id int, team_id int)")
-    cur.execute(
-        " ALTER TABLE players_to_team ADD UNIQUE INDEX ( player_id, team_id);")
-    sql = (f"INSERT IGNORE INTO players_to_team ( player_id, team_id)"
-           f"VALUES(%s,%s) ;")
+    logging.debug(f'Inserting players into Database')
+    try:
+        cur.execute(
+            "CREATE TABLE IF NOT EXISTS players_to_team (player_id int, team_id int)")
+        cur.execute(
+            " ALTER TABLE players_to_team ADD UNIQUE INDEX ( player_id, team_id);")
+        sql = (f"INSERT IGNORE INTO players_to_team ( player_id, team_id)"
+               f"VALUES(%s,%s) ;")
 
-    cur.executemany(sql, play_and_team_ids)
-    con.commit()
+        cur.executemany(sql, play_and_team_ids)
+        con.commit()
+    except Exception:
+        logging.debug(f'Failed to insert players into DataBase')
 
 
 def get_team_tables_from_api(df_teams):
     """
     Loads Teams Table to databse
     """
+    logging.debug(f'Getting team tables from API')
     df_teams_lists = df_teams.values.tolist()
     cur.execute(
         "CREATE TABLE IF NOT EXISTS teams (id int AUTO_INCREMENT PRIMARY KEY, abbreviation VARCHAR(100), "
@@ -79,16 +110,18 @@ def connect_to_db():
     """
     Connecting to MySql database
     """
+    logging.debug(f'Connecting to DataBase')
+    try:
+        username = constants.SQL_USER_NAME
+        password = constants.SQL_USER_PASSWORD
+        con = pymysql.connect(user=username, password=password)
+        cur = con.cursor()
+        cur.execute("CREATE DATABASE IF NOT EXISTS bask_play;")
+        cur.execute("use bask_play;")
 
-    username = constants.SQL_USER_NAME
-    password = constants.SQL_USER_PASSWORD
-    con = pymysql.connect(user=username, password=password)
-    cur = con.cursor()
-    cur.execute("CREATE DATABASE IF NOT EXISTS bask_play;")
-    cur.execute("use bask_play;")
-
-    return con, cur
-
+        return con, cur
+    except Exception:
+        logging.warning(f'Could not connect to DataBase')
 
 def insert_position_in_db(new_positions):
     """
@@ -298,26 +331,31 @@ def scrape_player_data(tr, players_dict, positions, colleges):
     :param colleges: list of colleges in db.
     :return: players_dict: dict, containing the players data.
     """
-    players_dict['player'].append(tr.a.text)
-    players_dict['start_year'].append(tr.find('td', {'data-stat': 'year_min'}).text)
-    players_dict['end_year'].append(tr.find('td', {'data-stat': 'year_max'}).text)
-    players_dict['position'].append(tr.find('td', {'data-stat': 'pos'}).text.split('-'))
-    pos = tr.find('td', {'data-stat': 'pos'}).text.split('-')
-    new_positions = list(np.setdiff1d(pos, positions))
-    if new_positions not in [[''], []]:
-        insert_position_in_db(new_positions)
-        positions += new_positions
-    # print()
-    players_dict['height'].append(tr.find('td', {'data-stat': 'height'}).text)
-    players_dict['weight'].append(tr.find('td', {'data-stat': 'weight'}).text)
-    players_dict['birth_date'].append(tr.find('td', {'data-stat': 'birth_date'}).text)
-    players_dict['colleges'].append(tr.find('td', {'data-stat': 'colleges'}).text.split(', '))
-    col = tr.find('td', {'data-stat': 'colleges'}).text.split(', ')
-    new_col = list(np.setdiff1d(col, colleges))
-    if new_col not in [[''], []]:
-        insert_college_in_db(new_col)
-        colleges += new_col
-    return players_dict
+
+    logging.debug(f'Starting to scrape player data')
+    try:
+        players_dict['player'].append(tr.a.text)
+        players_dict['start_year'].append(tr.find('td', {'data-stat': 'year_min'}).text)
+        players_dict['end_year'].append(tr.find('td', {'data-stat': 'year_max'}).text)
+        players_dict['position'].append(tr.find('td', {'data-stat': 'pos'}).text.split('-'))
+        pos = tr.find('td', {'data-stat': 'pos'}).text.split('-')
+        new_positions = list(np.setdiff1d(pos, positions))
+        if new_positions not in [[''], []]:
+            insert_position_in_db(new_positions)
+            positions += new_positions
+        # print()
+        players_dict['height'].append(tr.find('td', {'data-stat': 'height'}).text)
+        players_dict['weight'].append(tr.find('td', {'data-stat': 'weight'}).text)
+        players_dict['birth_date'].append(tr.find('td', {'data-stat': 'birth_date'}).text)
+        players_dict['colleges'].append(tr.find('td', {'data-stat': 'colleges'}).text.split(', '))
+        col = tr.find('td', {'data-stat': 'colleges'}).text.split(', ')
+        new_col = list(np.setdiff1d(col, colleges))
+        if new_col not in [[''], []]:
+            insert_college_in_db(new_col)
+            colleges += new_col
+        return players_dict
+    except ValueError():
+        logging.debug(f'Failed to scrape player data')
 
 
 def scrape_letter_players_data(letter_page_soup_obj, players_dict, positions, colleges):
@@ -375,12 +413,16 @@ def write_players_data_to_csv(players_df, path=None):
     :param path: str, representing a file absolute file.
     :return: str, representing the path to which the .csv file was written.
     """
-    if path:
-        path = path + constants.CSV_FILE_NAME
-    else:
-        path = constants.CSV_FILE_NAME
-    players_df.to_csv(path, index=False)
-    return path
+    logging.debug(f'Writing players to csv')
+    try:
+        if path:
+            path = path + constants.CSV_FILE_NAME
+        else:
+            path = constants.CSV_FILE_NAME
+        players_df.to_csv(path, index=False)
+        return path
+    except Exception:
+        logging.debug(f'Failed to write players to csv')
 
 
 def operate_commandline_argument_parser():

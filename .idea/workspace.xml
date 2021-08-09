@@ -2,8 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="e5bd35c6-776b-49cf-af39-5c617ebc34f0" name="Default Changelist" comment="solving merging conflicts between master remote and local djm">
+      <change beforePath="$PROJECT_DIR$/.idea/BasketBall_Scraper.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/BasketBall_Scraper.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/constants.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/players_data_scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/players_data_scraper.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -29,8 +30,6 @@
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/players_data.csvplayers_data.csv" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/constants.py" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file:///Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8/site-packages/pymysql/_auth.py" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file:///Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8/site-packages/pandas/core/generic.py" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/players_data_scraper.py" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="ProjectId" id="1vwOZh4COpntupeXBbAZOAYtAkm" />
@@ -161,16 +160,5 @@
     <MESSAGE value="updated main function." />
     <MESSAGE value="solving merging conflicts between master remote and local djm" />
     <option name="LAST_COMMIT_MESSAGE" value="solving merging conflicts between master remote and local djm" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/players_data_scraper.py</url>
-          <line>48</line>
-          <option name="timeStamp" value="18" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>
