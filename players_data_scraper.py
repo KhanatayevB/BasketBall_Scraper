@@ -403,11 +403,11 @@ def create_players_data_frame(players_dict):
     players_df = pd.DataFrame(players_dict)
     foot_to_cm = 30.48
     inch_to_cm = 2.54
-    players_df['weight']
-    weight_split = pd.Series(players_df['weight'].str.split('-'))
-    players_df['weight'] = weight_split.apply(lambda x: int(x[0])*foot_to_cm + int(x[1])*inch_to_cm)
-    players_df['height'] = players_df['height']*0.4536
-    return pd.DataFrame(players_dict)
+    height_split = pd.Series(players_df['height'].str.split('-'))
+    players_df['height'] = height_split.apply(lambda x: int(x[0]) * foot_to_cm + int(x[1]) * inch_to_cm  if x != [''] else '')
+    players_df['weight'] = players_df['weight'].apply(
+        lambda x: float(x) * 0.4536 if x != '' else '')
+    return players_df
 
 
 def write_players_data_to_csv(players_df, path=None):
