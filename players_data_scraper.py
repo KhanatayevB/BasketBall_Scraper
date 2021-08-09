@@ -544,7 +544,7 @@ def get_letter_rang(urls_list, players_dict, letter1, letter2):
         display_error_and_terminate(error)
 
 
-def pickle_dataframe(path):
+def pickle_dataframe(path,players_data_frame):
     """
     This function pickles the data dataframe.
     """
@@ -602,7 +602,7 @@ def main():
     if args.print:
         print(players_data_frame)
     if args.dataframe:
-        pickle_dataframe(path)
+        pickle_dataframe(path, players_data_frame)
     if args.csv:
         handle_csv(path, players_data_frame)
     if args.database:
